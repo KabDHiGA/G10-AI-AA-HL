@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Déo Normal Distribution Explorer</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#17171b;--muted:#686874;--line:#dedee8;--accent:#a51669}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:22px} h1{margin:0;font-size:32px}.sub{margin-top:5px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;margin-top:16px;box-shadow:0 4px 16px #00000009}
+.tabs,.modes{display:flex;gap:8px;flex-wrap:wrap}.tabs{margin-bottom:14px}
+button{border:1px solid #bcbcc6;background:white;border-radius:999px;padding:10px 15px;font-weight:700;cursor:pointer}
+button.active{background:var(--accent);border-color:var(--accent);color:white}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px} label{font-size:14px;font-weight:700}
+input{width:100%;margin-top:5px;padding:10px;border:1px solid #bdbdc8;border-radius:9px;font-size:19px}
+.modes{margin-top:13px} canvas{width:100%;height:445px;display:block}
+.answer{text-align:center;font-size:25px;font-weight:800}.formula{text-align:center;color:var(--muted);font-size:17px;margin-top:5px}
+.note{color:var(--muted);font-size:13px;margin-top:10px}.inverse{display:none}.footer{text-align:center;color:#777;font-size:13px;padding:18px}
+@media(max-width:720px){.grid{grid-template-columns:1fr 1fr}canvas{height:370px}h1{font-size:27px}}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Normal Distribution Explorer</h1>
+<div class="sub">Interactive Mathematics Tool • Designed by Déo Kabanga</div>
+
+<div class="card">
+<div class="tabs">
+<button id="probTab" class="active" onclick="setTab('prob')">Probability</button>
+<button id="invTab" onclick="setTab('inv')">Inverse Normal</button>
+</div>
+
+<div id="probControls">
+<div class="grid">
+<label>Mean, μ<input id="mu" type="number" value="170" step="any"></label>
+<label>Standard deviation, σ<input id="sd" type="number" value="10" min=".000001" step="any"></label>
+<label>Lower / cutoff, a<input id="a" type="number" value="180" step="any"></label>
+<label>Upper bound, b<input id="b" type="number" value="200" step="any"></label>
+</div>
+<div class="modes">
+<button class="mode active" data-mode="left">LEFT: P(X &lt; a)</button>
+<button class="mode" data-mode="right">RIGHT: P(X &gt; a)</button>
+<button class="mode" data-mode="between">BETWEEN</button>
+<button class="mode" data-mode="outside">OUTSIDE</button>
+</div>
+</div>
+
+<div id="invControls" class="inverse">
+<div class="grid">
+<label>Mean, μ<input id="imu" type="number" value="170" step="any"></label>
+<label>Standard deviation, σ<input id="isd" type="number" value="10" min=".000001" step="any"></label>
+<label>Probability (0 to 1)<input id="ip" type="number" value="0.84" min=".000001" max=".999999" step=".01"></label>
+<label>Tail
+<select id="itail" style="width:100%;margin-top:5px;padding:11px;border:1px solid #bdbdc8;border-radius:9px;font-size:17px">
+<option value="left">Left: P(X &lt; x) = p</option><option value="right">Right: P(X &gt; x) = p</option>
+</select></label>
+</div>
+<div class="note">Enter the probability as a decimal, e.g. 0.84 for 84%.</div>
+</div>
+</div>
+
+<div class="card"><canvas id="plot"></canvas><div id="answer" class="answer"></div><div id="formula" class="formula"></div></div>
+<div class="footer">Déo Kabanga • Mathematics</div>
+</div>
+
+<script>
+let tab="prob",mode="left"; const $=x=>document.getElementById(x);
+function setTab(t){tab=t;$("probTab").classList.toggle("active",t==="prob");$("invTab").classList.toggle("active",t==="inv");
+$("probControls").style.display=t==="prob"?"block":"none";$("invControls").style.display=t==="inv"?"block":"none";draw()}
+document.querySelectorAll(".mode").forEach(x=>x.onclick=()=>{document.querySelectorAll(".mode").forEach(y=>y.classList.remove("active"));x.classList.add("active");mode=x.dataset.mode;draw()});
+document.querySelectorAll("input,select").forEach(x=>x.addEventListener("input",draw)); window.addEventListener("resize",draw);
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911,t=1/(1+p*x);return s*(1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x))}
+function cdf(x,m,s){return .5*(1+erf((x-m)/(s*Math.SQRT2)))} function pdf(x,m,s){return Math.exp(-.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI))}
+function invNorm(p,m,s){let lo=m-10*s,hi=m+10*s;for(let i=0;i<100;i++){let mid=(lo+hi)/2;if(cdf(mid,m,s)<p)lo=mid;else hi=mid}return(lo+hi)/2}
+function fmt(x){return Number(x).toLocaleString(undefined,{maximumFractionDigits:4})}
+function draw(){
+ let m,s,a,b,p,tail,xcut=null;
+ if(tab==="prob"){m=+$("mu").value;s=+$("sd").value;a=+$("a").value;b=+$("b").value}
+ else{m=+$("imu").value;s=+$("isd").value;p=+$("ip").value;tail=$("itail").value;if(!(p>0&&p<1))return;xcut=invNorm(tail==="left"?p:1-p,m,s);a=xcut;b=xcut}
+ if(!isFinite(m)||!isFinite(s)||s<=0)return;
+ const c=$("plot"),d=window.devicePixelRatio||1,r=c.getBoundingClientRect();c.width=r.width*d;c.height=r.height*d;let q=c.getContext("2d");q.scale(d,d);
+ let W=r.width,H=r.height,L=62,R=24,T=20,B=62;
+ let vals=[m-4*s,m+4*s,a];if(tab==="prob"&&(mode==="between"||mode==="outside"))vals.push(b);
+ let xmin=Math.min(...vals),xmax=Math.max(...vals),pad=Math.max((xmax-xmin)*.04,s*.2);xmin-=pad;xmax+=pad;
+ let ymax=pdf(m,m,s)*1.12,X=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R),Y=y=>H-B-y/ymax*(H-T-B),base=Y(0),n=1000;
+ q.clearRect(0,0,W,H);q.strokeStyle="#ededf2";q.lineWidth=1;for(let i=0;i<=8;i++){let xx=L+i*(W-L-R)/8;q.beginPath();q.moveTo(xx,T);q.lineTo(xx,base);q.stroke()}
+ function inside(x){
+   if(tab==="inv")return tail==="left"?x<=xcut:x>=xcut;
+   let lo=Math.min(a,b),hi=Math.max(a,b);
+   return mode==="left"?x<=a:mode==="right"?x>=a:mode==="between"?(x>=lo&&x<=hi):(x<=lo||x>=hi)
+ }
+ q.fillStyle="rgba(165,22,105,.25)";let open=false;q.beginPath();
+ for(let i=0;i<=n;i++){let x=xmin+(xmax-xmin)*i/n,yes=inside(x);if(yes&&!open){q.moveTo(X(x),base);q.lineTo(X(x),Y(pdf(x,m,s)));open=true}else if(yes)q.lineTo(X(x),Y(pdf(x,m,s)));else if(open){q.lineTo(X(x),base);q.closePath();q.fill();q.beginPath();open=false}}
+ if(open){q.lineTo(X(xmax),base);q.closePath();q.fill()}
+ q.strokeStyle="#17171b";q.lineWidth=3;q.beginPath();for(let i=0;i<=n;i++){let x=xmin+(xmax-xmin)*i/n;i?q.lineTo(X(x),Y(pdf(x,m,s))):q.moveTo(X(x),Y(pdf(x,m,s)))}q.stroke();
+ q.strokeStyle="#555";q.lineWidth=1.2;q.beginPath();q.moveTo(L,base);q.lineTo(W-R,base);q.stroke();
+ function mark(v,label,grey=false){if(v<xmin||v>xmax)return;q.save();q.strokeStyle=grey?"#777":"#a51669";q.lineWidth=2;q.setLineDash(grey?[6,5]:[]);q.beginPath();q.moveTo(X(v),base);q.lineTo(X(v),T+15);q.stroke();q.restore();q.fillStyle="#222";q.font="15px Arial";q.textAlign="center";q.fillText(label+" = "+fmt(v),X(v),base+27)}
+ mark(m,"μ",true);mark(a,tab==="inv"?"x":"a");if(tab==="prob"&&(mode==="between"||mode==="outside"))mark(b,"b");
+ q.fillStyle="#666";q.font="12px Arial";q.textAlign="center";for(let i=0;i<=8;i++){let v=xmin+i*(xmax-xmin)/8;q.fillText(fmt(v),X(v),base+49)}
+ let ans,txt;
+ if(tab==="inv"){ans=xcut;txt=(tail==="left"?`P(X < x) = ${p}`:`P(X > x) = ${p}`);$("answer").textContent=`${txt}  →  x ≈ ${fmt(ans)}`}
+ else{let lo=Math.min(a,b),hi=Math.max(a,b);let pr=mode==="left"?cdf(a,m,s):mode==="right"?1-cdf(a,m,s):mode==="between"?cdf(hi,m,s)-cdf(lo,m,s):cdf(lo,m,s)+1-cdf(hi,m,s);
+ txt=mode==="left"?`P(X < ${fmt(a)})`:mode==="right"?`P(X > ${fmt(a)})`:mode==="between"?`P(${fmt(lo)} < X < ${fmt(hi)})`:`P(X < ${fmt(lo)} or X > ${fmt(hi)})`;
+ $("answer").textContent=`${txt} = ${pr.toFixed(4)} ≈ ${(100*pr).toFixed(2)}%`}
+ $("formula").textContent=`X ~ N(${fmt(m)}, ${fmt(s)}²)`;
+}
+draw();
+</script></body></html>
