@@ -1,1 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Interactive Normal Distribution Explorer</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f7f7fa;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1050px;
+      margin: 30px auto;
+      padding: 25px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      text-align: center;
+      color: #9c1458;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 17px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 20px;
+    }
+
+    .control-box {
+      background: #faf7fa;
+      border: 1px solid #ead8e2;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .control-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .value {
+      color: #9c1458;
+      font-weight: bold;
+      font-size: 22px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-top: 12px;
+      accent-color: #9c1458;
+      cursor: pointer;
+    }
+
+    canvas {
+      width: 100%;
+      height: 440px;
+      border-radius: 12px;
+      background: white;
+      border: 1px solid #ddd;
+    }
+
+    .explanation {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .info {
+      padding: 16px;
+      border-left: 5px solid #9c1458;
+      background: #faf7fa;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .formula {
+      text-align: center;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      margin: 20px 0 5px;
+    }
+
+    .challenge {
+      margin-top: 22px;
+      padding: 18px;
+      background: #fff8d8;
+      border-radius: 10px;
+      border: 1px solid #eadc91;
+    }
+
+    .challenge strong {
+      color: #7d5700;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #888;
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .controls,
+      .explanation {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      canvas {
+        height: 360px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <h1>Interactive Normal Distribution Explorer</h1>
+
+    <div class="subtitle">
+      Investigate how the mean and standard deviation change a normal distribution.
+    </div>
+
+    <div class="controls">
+
+      <div class="control-box">
+        <div class="control-title">
+          Mean, μ = <span class="value" id="meanValue">0</span>
+        </div>
+
+        <input
+          type="range"
+          id="meanSlider"
+          min="-5"
+          max="5"
+          step="0.1"
+          value="0"
+        >
+
+        <p>
+          Move the slider and observe what happens to the
+          <strong>position</strong> of the curve.
+        </p>
+      </div>
+
+      <div class="control-box">
+        <div class="control-title">
+          Standard Deviation, σ =
+          <span class="value" id="sdValue">1.0</span>
+        </div>
+
+        <input
+          type="range"
+          id="sdSlider"
+          min="0.3"
+          max="3"
+          step="0.1"
+          value="1"
+        >
+
+        <p>
+          Move the slider and observe what happens to the
+          <strong>spread and height</strong> of the curve.
+        </p>
+      </div>
+
+    </div>
+
+    <canvas id="normalCanvas"></canvas>
+
+    <div class="formula">
+      X ~ N(μ, σ²)
+    </div>
+
+    <div class="explanation">
+
+      <div class="info">
+        <strong>Mean (μ)</strong><br>
+        The mean determines the <strong>centre</strong> of the distribution.
+        Increasing μ shifts the curve to the right, while decreasing μ
+        shifts it to the left.
+      </div>
+
+      <div class="info">
+        <strong>Standard Deviation (σ)</strong><br>
+        The standard deviation determines the <strong>spread</strong>.
+        A smaller σ produces a narrower and taller curve.
+        A larger σ produces a wider and flatter curve.
+      </div>
+
+    </div>
+
+    <div class="challenge">
+      <strong>Explore:</strong>
+      Can you change the mean without changing the shape of the curve?
+      Can you change the standard deviation without moving its centre?
+    </div>
+
+    <div class="footer">
+      Interactive Mathematics Activity
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+
+const canvas = document.getElementById("normalCanvas");
+const ctx = canvas.getContext("2d");
+
+const meanSlider = document.getElementById("meanSlider");
+const sdSlider = document.getElementById("sdSlider");
+
+const meanValue = document.getElementById("meanValue");
+const sdValue = document.getElementById("sdValue");
+
+
+function normalPDF(x, mean, sd) {
+
+  return (
+    1 / (sd * Math.sqrt(2 * Math.PI))
+  ) * Math.exp(
+    -0.5 * Math.pow((x - mean) / sd, 2)
+  );
+
+}
+
+
+function resizeCanvas() {
+
+  const rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+
+  ctx.setTransform(
+    window.devicePixelRatio,
+    0,
+    0,
+    window.devicePixelRatio,
+    0,
+    0
+  );
+
+  drawGraph();
+}
+
+
+function drawGraph() {
+
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+
+  ctx.clearRect(0, 0, width, height);
+
+  const mean = parseFloat(meanSlider.value);
+  const sd = parseFloat(sdSlider.value);
+
+  meanValue.textContent = mean.toFixed(1);
+  sdValue.textContent = sd.toFixed(1);
+
+
+  const left = 60;
+  const right = 25;
+  const top = 30;
+  const bottom = 55;
+
+  const graphWidth = width - left - right;
+  const graphHeight = height - top - bottom;
+
+
+  /*
+     Keep the x-axis fixed so students can clearly
+     see the mean moving the curve left and right.
+  */
+
+  const xMin = -10;
+  const xMax = 10;
+
+  const yMax = 1.45;
+
+
+  function xToPixel(x) {
+
+    return left +
+      ((x - xMin) / (xMax - xMin)) * graphWidth;
+
+  }
+
+
+  function yToPixel(y) {
+
+    return top +
+      graphHeight -
+      (y / yMax) * graphHeight;
+
+  }
+
+
+  /*
+     GRID
+  */
+
+  ctx.strokeStyle = "#eeeeee";
+  ctx.lineWidth = 1;
+
+  for (let x = -10; x <= 10; x++) {
+
+    const px = xToPixel(x);
+
+    ctx.beginPath();
+    ctx.moveTo(px, top);
+    ctx.lineTo(px, top + graphHeight);
+    ctx.stroke();
+
+  }
+
+
+  /*
+     X AXIS
+  */
+
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 1.5;
+
+  ctx.beginPath();
+
+  ctx.moveTo(left, top + graphHeight);
+  ctx.lineTo(left + graphWidth, top + graphHeight);
+
+  ctx.stroke();
+
+
+  /*
+     AXIS LABELS
+  */
+
+  ctx.fillStyle = "#555";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "center";
+
+  for (let x = -10; x <= 10; x += 2) {
+
+    const px = xToPixel(x);
+
+    ctx.fillText(
+      x,
+      px,
+      top + graphHeight + 22
+    );
+
+  }
+
+
+  /*
+     SHADE AREA UNDER CURVE
+  */
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    xToPixel(xMin),
+    yToPixel(0)
+  );
+
+  for (let x = xMin; x <= xMax; x += 0.02) {
+
+    const y = normalPDF(x, mean, sd);
+
+    ctx.lineTo(
+      xToPixel(x),
+      yToPixel(y)
+    );
+
+  }
+
+  ctx.lineTo(
+    xToPixel(xMax),
+    yToPixel(0)
+  );
+
+  ctx.closePath();
+
+  ctx.fillStyle = "rgba(156, 20, 88, 0.10)";
+  ctx.fill();
+
+
+  /*
+     NORMAL CURVE
+  */
+
+  ctx.beginPath();
+
+  let firstPoint = true;
+
+  for (let x = xMin; x <= xMax; x += 0.02) {
+
+    const y = normalPDF(x, mean, sd);
+
+    const px = xToPixel(x);
+    const py = yToPixel(y);
+
+    if (firstPoint) {
+
+      ctx.moveTo(px, py);
+      firstPoint = false;
+
+    } else {
+
+      ctx.lineTo(px, py);
+
+    }
+
+  }
+
+  ctx.strokeStyle = "#9c1458";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+
+  /*
+     MEAN LINE
+  */
+
+  const meanX = xToPixel(mean);
+
+  ctx.beginPath();
+
+  ctx.setLineDash([7, 5]);
+
+  ctx.moveTo(
+    meanX,
+    top + graphHeight
+  );
+
+  ctx.lineTo(
+    meanX,
+    yToPixel(normalPDF(mean, mean, sd))
+  );
+
+  ctx.strokeStyle = "#1565c0";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+
+  /*
+     MEAN LABEL
+  */
+
+  ctx.fillStyle = "#1565c0";
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "center";
+
+  ctx.fillText(
+    "μ",
+    meanX,
+    top + graphHeight + 43
+  );
+
+
+  /*
+     STANDARD DEVIATION MARKERS
+  */
+
+  const minusSigma = mean - sd;
+  const plusSigma = mean + sd;
+
+  ctx.fillStyle = "#9c1458";
+  ctx.font = "bold 13px Arial";
+
+  ctx.fillText(
+    "μ − σ",
+    xToPixel(minusSigma),
+    top + graphHeight - 10
+  );
+
+  ctx.fillText(
+    "μ + σ",
+    xToPixel(plusSigma),
+    top + graphHeight - 10
+  );
+
+
+  /*
+     CURRENT DISTRIBUTION LABEL
+  */
+
+  ctx.fillStyle = "#333";
+  ctx.font = "bold 17px Arial";
+  ctx.textAlign = "left";
+
+  ctx.fillText(
+    "X ~ N(" +
+    mean.toFixed(1) +
+    ", " +
+    Math.pow(sd,2).toFixed(2) +
+    ")",
+    left + 10,
+    top + 22
+  );
+
+}
+
+
+meanSlider.addEventListener(
+  "input",
+  drawGraph
+);
+
+sdSlider.addEventListener(
+  "input",
+  drawGraph
+);
+
+window.addEventListener(
+  "resize",
+  resizeCanvas
+);
+
+resizeCanvas();
+
+</script>
+
+</body>
+</html>
