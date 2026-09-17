@@ -1,17 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Normal Distribution Explorer</title>
+
+<style>
+:root{
+  --magenta:#9c1458;
+  --blue:#1565c0;
+  --text:#202124;
+  --muted:#667085;
+  --border:#e4e7ec;
+  --soft:#f8f9fb;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#f5f6f8;
+  font-family:Arial,Helvetica,sans-serif;
+  color:var(--text);
+}
+
+.app{
+  width:min(880px,94vw);
+  margin:24px auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.07);
+  padding:22px 28px 18px;
+}
+
+h1{
+  margin:0;
+  text-align:center;
+  font-size:25px;
+  color:var(--magenta);
+}
+
+.subtitle{
+  text-align:center;
+  color:var(--muted);
+  font-size:14px;
+  margin:6px 0 18px;
+}
+
+/* CONTROLS */
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.control{
+  border:1px solid var(--border);
+  background:var(--soft);
+  border-radius:12px;
+  padding:12px 15px;
+}
+
+.control-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  font-weight:700;
+}
+
+.number-input{
+  width:85px;
+  color:var(--magenta);
+  background:white;
+  border:1px solid #d0d5dd;
+  border-radius:7px;
+  text-align:center;
+  padding:5px 8px;
+  font-size:16px;
+  font-weight:700;
+  outline:none;
+}
+
+.number-input:focus{
+  border-color:var(--magenta);
+  box-shadow:0 0 0 3px rgba(156,20,88,.10);
+}
+
+.adjuster{
+  display:grid;
+  grid-template-columns:36px 1fr 36px;
+  align-items:center;
+  gap:10px;
+}
+
+button{
+  width:36px;
+  height:32px;
+  border:1px solid #d0d5dd;
+  border-radius:7px;
+  background:#fff;
+  font-size:20px;
+  cursor:pointer;
+  color:var(--magenta);
+  transition:.15s;
+}
+
+button:hover{
+  background:var(--magenta);
+  color:white;
+  border-color:var(--magenta);
+}
+
+/* SLIDERS */
+
+input[type=range]{
+  width:100%;
+  height:5px;
+  appearance:none;
+  background:#d9dde4;
+  border-radius:10px;
+  outline:none;
+}
+
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;
+  width:17px;
+  height:17px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid var(--magenta);
+  cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+}
+
+input[type=range]::-moz-range-thumb{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid var(--magenta);
+  cursor:pointer;
+}
+
+/* GRAPH */
+
+.graph-wrap{
+  position:relative;
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  background:white;
+}
+
+canvas{
+  display:block;
+  width:100%;
+  height:340px;
+}
+
+.distribution{
+  position:absolute;
+  top:13px;
+  left:16px;
+  background:rgba(255,255,255,.94);
+  padding:6px 10px;
+  border-radius:7px;
+  font-family:Georgia,serif;
+  font-size:17px;
+  font-weight:bold;
+}
+
+/* KEY */
+
+.key{
+  display:flex;
+  justify-content:center;
+  gap:32px;
+  margin-top:15px;
+  font-size:14px;
+}
+
+.key span{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+}
+
+.magenta{background:var(--magenta)}
+.blue{background:var(--blue)}
+
+.message{
+  text-align:center;
+  margin-top:11px;
+  font-size:14px;
+  color:#475467;
+}
+
+.message strong{
+  color:var(--magenta);
+}
+
+@media(max-width:650px){
+  .controls{
+    grid-template-columns:1fr;
+  }
+
+  .app{
+    padding:16px;
+  }
+
+  canvas{
+    height:300px;
+  }
+
+  .key{
+    gap:14px;
+    flex-wrap:wrap;
+  }
+}
+</style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+<h1>Normal Distribution Explorer</h1>
+
+<div class="subtitle">
+Change μ and σ and observe how the distribution responds.
+</div>
+
+
+<div class="controls">
+
+  <!-- MEAN -->
+
+  <div class="control">
+
+    <div class="control-head">
+
+      <span>Mean (μ)</span>
+
+      <input
+        id="meanInput"
+        class="number-input"
+        type="number"
+        min="110"
+        max="230"
+        step="1"
+        value="170">
+
+    </div>
+
+    <div class="adjuster">
+
+      <button onclick="changeMean(-1)">−</button>
+
+      <input
+        id="meanSlider"
+        type="range"
+        min="110"
+        max="230"
+        step="1"
+        value="170">
+
+      <button onclick="changeMean(1)">+</button>
+
+    </div>
+
+  </div>
+
+
+  <!-- STANDARD DEVIATION -->
+
+  <div class="control">
+
+    <div class="control-head">
+
+      <span>Standard deviation (σ)</span>
+
+      <input
+        id="sdInput"
+        class="number-input"
+        type="number"
+        min="2"
+        max="30"
+        step="1"
+        value="10">
+
+    </div>
+
+    <div class="adjuster">
+
+      <button onclick="changeSD(-1)">−</button>
+
+      <input
+        id="sdSlider"
+        type="range"
+        min="2"
+        max="30"
+        step="1"
+        value="10">
+
+      <button onclick="changeSD(1)">+</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- GRAPH -->
+
+<div class="graph-wrap">
+
+  <div class="distribution" id="distribution">
+    X ~ N(170, 10²)
+  </div>
+
+  <canvas id="graph"></canvas>
+
+</div>
+
+
+<!-- KEY -->
+
+<div class="key">
+
+  <span>
+    <i class="dot blue"></i>
+    μ controls the <strong>centre</strong>
+  </span>
+
+  <span>
+    <i class="dot magenta"></i>
+    σ controls the <strong>spread</strong>
+  </span>
+
+</div>
+
+
+<div class="message">
+Move <strong>μ</strong> to shift the entire curve left or right.
+Change <strong>σ</strong> to make it narrower/taller or wider/flatter.
+</div>
+
+</div>
+
+
+<script>
+
+/* ==========================================================
+   ELEMENTS
+========================================================== */
+
+const canvas =
+  document.getElementById("graph");
+
+const ctx =
+  canvas.getContext("2d");
+
+const meanSlider =
+  document.getElementById("meanSlider");
+
+const sdSlider =
+  document.getElementById("sdSlider");
+
+const meanInput =
+  document.getElementById("meanInput");
+
+const sdInput =
+  document.getElementById("sdInput");
+
+const distribution =
+  document.getElementById("distribution");
+
+
+/* ==========================================================
+   NORMAL PDF
+========================================================== */
+
+function pdf(x,mu,sigma){
+
+  return (
+    1 /
+    (sigma*Math.sqrt(2*Math.PI))
+  ) *
+  Math.exp(
+    -0.5 *
+    Math.pow(
+      (x-mu)/sigma,
+      2
+    )
+  );
+
+}
+
+
+/* ==========================================================
+   MEAN
+========================================================== */
+
+function changeMean(amount){
+
+  let mu =
+    parseFloat(meanInput.value);
+
+  if(!Number.isFinite(mu)){
+    mu=170;
+  }
+
+  mu += amount;
+
+  /*
+  Keep the mean inside the visible
+  teaching window.
+  */
+
+  mu =
+    Math.max(
+      110,
+      Math.min(230,mu)
+    );
+
+  meanInput.value=mu;
+  meanSlider.value=mu;
+
+  draw();
+}
+
+
+/* ==========================================================
+   STANDARD DEVIATION
+========================================================== */
+
+function changeSD(amount){
+
+  let sigma =
+    parseFloat(sdInput.value);
+
+  if(!Number.isFinite(sigma)){
+    sigma=10;
+  }
+
+  sigma += amount;
+
+  sigma =
+    Math.max(
+      2,
+      Math.min(30,sigma)
+    );
+
+  sdInput.value=sigma;
+  sdSlider.value=sigma;
+
+  draw();
+}
+
+
+/* ==========================================================
+   INPUT BOX EVENTS
+========================================================== */
+
+meanInput.addEventListener(
+  "change",
+  function(){
+
+    let mu =
+      parseFloat(this.value);
+
+    if(!Number.isFinite(mu)){
+      mu=170;
+    }
+
+    mu =
+      Math.max(
+        110,
+        Math.min(230,mu)
+      );
+
+    this.value=mu;
+    meanSlider.value=mu;
+
+    draw();
+
+  }
+);
+
+
+sdInput.addEventListener(
+  "change",
+  function(){
+
+    let sigma =
+      parseFloat(this.value);
+
+    if(!Number.isFinite(sigma)){
+      sigma=10;
+    }
+
+    sigma =
+      Math.max(
+        2,
+        Math.min(30,sigma)
+      );
+
+    this.value=sigma;
+    sdSlider.value=sigma;
+
+    draw();
+
+  }
+);
+
+
+/* ==========================================================
+   SLIDER EVENTS
+========================================================== */
+
+meanSlider.addEventListener(
+  "input",
+  function(){
+
+    meanInput.value =
+      this.value;
+
+    draw();
+
+  }
+);
+
+
+sdSlider.addEventListener(
+  "input",
+  function(){
+
+    sdInput.value =
+      this.value;
+
+    draw();
+
+  }
+);
+
+
+/* ==========================================================
+   CANVAS RESIZE
+========================================================== */
+
+function resize(){
+
+  const r =
+    canvas.getBoundingClientRect();
+
+  const dpr =
+    window.devicePixelRatio || 1;
+
+  canvas.width =
+    r.width*dpr;
+
+  canvas.height =
+    r.height*dpr;
+
+  ctx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
+
+  draw();
+}
+
+
+/* ==========================================================
+   DRAW
+========================================================== */
+
 function draw(){
 
-  const W = canvas.clientWidth;
-  const H = canvas.clientHeight;
+  const W =
+    canvas.clientWidth;
 
-  ctx.clearRect(0,0,W,H);
+  const H =
+    canvas.clientHeight;
 
-  const mu = parseFloat(meanInput.value);
-  const sigma = parseFloat(sdInput.value);
+  ctx.clearRect(
+    0,
+    0,
+    W,
+    H
+  );
 
-  if(!Number.isFinite(mu)) return;
-  if(!Number.isFinite(sigma) || sigma <= 0) return;
 
-  const variance = sigma * sigma;
+  const mu =
+    parseFloat(meanInput.value);
+
+  const sigma =
+    parseFloat(sdInput.value);
+
+
+  if(
+    !Number.isFinite(mu) ||
+    !Number.isFinite(sigma) ||
+    sigma<=0
+  ){
+    return;
+  }
+
+
+  /* ========================================================
+     DISTRIBUTION LABEL
+  ======================================================== */
+
+  const variance =
+    sigma*sigma;
 
   distribution.innerHTML =
     "X ~ N(" +
@@ -20,103 +638,177 @@ function draw(){
     formatNumber(variance) +
     ")";
 
-  const L = 55;
-  const R = 25;
-  const T = 35;
-  const B = 48;
 
-  const gw = W - L - R;
-  const gh = H - T - B;
+  /* ========================================================
+     GRAPH DIMENSIONS
+  ======================================================== */
 
-  /*
-  =====================================================
-  FIXED X-AXIS
+  const L=55;
+  const R=25;
+  const T=35;
+  const B=48;
 
-  THIS IS WHAT MAKES THE BELL ACTUALLY MOVE.
+  const gw =
+    W-L-R;
 
-  Changing μ moves the bell LEFT or RIGHT.
-  Changing σ changes the WIDTH and HEIGHT.
-  =====================================================
-  */
+  const gh =
+    H-T-B;
 
-  const xmin = 100;
-  const xmax = 240;
 
-  /*
-  FIXED VERTICAL SCALE
+  /* ========================================================
+     FIXED X-AXIS
 
-  This allows students to see σ change
-  the height as well as the width.
-  */
+     VERY IMPORTANT:
 
-  const referenceSigma = 5;
-  const ymax =
-    pdf(170,170,referenceSigma) * 1.15;
+     THIS NEVER CHANGES.
+
+     μ DOES NOT CONTROL THE AXIS.
+
+     μ CONTROLS ONLY THE POSITION
+     OF THE BELL CURVE.
+  ======================================================== */
+
+  const xmin=100;
+  const xmax=240;
+
+
+  /* ========================================================
+     FIXED Y-AXIS
+
+     This also stays fixed.
+
+     Therefore changing σ visibly
+     changes both height and width.
+  ======================================================== */
+
+  const ymax=0.09;
+
+
+  /* ========================================================
+     COORDINATE CONVERSION
+  ======================================================== */
 
   const xp = x =>
-    L + (x-xmin)/(xmax-xmin)*gw;
+    L +
+    (x-xmin) /
+    (xmax-xmin) *
+    gw;
+
 
   const yp = y =>
-    T + gh - (y/ymax)*gh;
+    T +
+    gh -
+    (y/ymax) *
+    gh;
 
 
-  /* GRID */
+  /* ========================================================
+     VERTICAL GRID
 
-  ctx.strokeStyle = "#f0f1f3";
-  ctx.lineWidth = 1;
+     THESE NUMBERS NEVER MOVE.
+  ======================================================== */
 
-  ctx.fillStyle = "#667085";
-  ctx.font = "11px Arial";
-  ctx.textAlign = "center";
+  ctx.strokeStyle="#f0f1f3";
+  ctx.lineWidth=1;
 
-  for(let x=100; x<=240; x+=20){
+  ctx.fillStyle="#667085";
+  ctx.font="11px Arial";
+  ctx.textAlign="center";
 
-    const px = xp(x);
+
+  for(
+    let x=100;
+    x<=240;
+    x+=20
+  ){
+
+    const px=xp(x);
 
     ctx.beginPath();
-    ctx.moveTo(px,T);
-    ctx.lineTo(px,T+gh);
+
+    ctx.moveTo(
+      px,
+      T
+    );
+
+    ctx.lineTo(
+      px,
+      T+gh
+    );
+
     ctx.stroke();
+
 
     ctx.fillText(
       x,
       px,
       T+gh+21
     );
+
   }
 
 
-  /* X-AXIS */
+  /* ========================================================
+     X-AXIS
+  ======================================================== */
 
-  ctx.strokeStyle = "#667085";
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle="#667085";
+  ctx.lineWidth=1.2;
 
   ctx.beginPath();
-  ctx.moveTo(L,T+gh);
-  ctx.lineTo(L+gw,T+gh);
+
+  ctx.moveTo(
+    L,
+    T+gh
+  );
+
+  ctx.lineTo(
+    L+gw,
+    T+gh
+  );
+
   ctx.stroke();
 
 
-  /*
-  SHADED AREA
-  */
+  /* ========================================================
+     SHADED AREA
+  ======================================================== */
+
+  const samples=900;
 
   ctx.beginPath();
-  ctx.moveTo(xp(xmin),yp(0));
 
-  const samples = 800;
+  ctx.moveTo(
+    xp(xmin),
+    yp(0)
+  );
 
-  for(let i=0;i<=samples;i++){
+
+  for(
+    let i=0;
+    i<=samples;
+    i++
+  ){
 
     const x =
       xmin +
-      (i/samples)*(xmax-xmin);
+      (i/samples) *
+      (xmax-xmin);
+
+    const y =
+      pdf(
+        x,
+        mu,
+        sigma
+      );
 
     ctx.lineTo(
       xp(x),
-      yp(pdf(x,mu,sigma))
+      yp(y)
     );
+
   }
+
 
   ctx.lineTo(
     xp(xmax),
@@ -125,58 +817,117 @@ function draw(){
 
   ctx.closePath();
 
+
   ctx.fillStyle =
     "rgba(156,20,88,.09)";
 
   ctx.fill();
 
 
-  /*
-  BELL CURVE
-  */
+  /* ========================================================
+     BELL CURVE
+
+     THIS IS THE OBJECT THAT MOVES.
+  ======================================================== */
 
   ctx.beginPath();
 
-  for(let i=0;i<=samples;i++){
+
+  for(
+    let i=0;
+    i<=samples;
+    i++
+  ){
 
     const x =
       xmin +
-      (i/samples)*(xmax-xmin);
+      (i/samples) *
+      (xmax-xmin);
 
-    const X = xp(x);
-    const Y = yp(pdf(x,mu,sigma));
+    const X =
+      xp(x);
 
-    if(i===0)
-      ctx.moveTo(X,Y);
-    else
-      ctx.lineTo(X,Y);
+    const Y =
+      yp(
+        pdf(
+          x,
+          mu,
+          sigma
+        )
+      );
+
+
+    if(i===0){
+
+      ctx.moveTo(
+        X,
+        Y
+      );
+
+    }else{
+
+      ctx.lineTo(
+        X,
+        Y
+      );
+
+    }
+
   }
 
-  ctx.strokeStyle = "#9c1458";
-  ctx.lineWidth = 3;
+
+  ctx.strokeStyle="#9c1458";
+  ctx.lineWidth=3;
+
   ctx.stroke();
 
 
-  /*
-  MEAN LINE
-  */
+  /* ========================================================
+     MEAN LINE
 
-  if(mu >= xmin && mu <= xmax){
+     This line moves WITH the bell.
+  ======================================================== */
 
-    const mx = xp(mu);
+  if(
+    mu>=xmin &&
+    mu<=xmax
+  ){
 
-    const peakY =
-      yp(pdf(mu,mu,sigma));
+    const mx =
+      xp(mu);
+
+    const peak =
+      yp(
+        pdf(
+          mu,
+          mu,
+          sigma
+        )
+      );
+
 
     ctx.save();
 
-    ctx.setLineDash([5,5]);
-    ctx.strokeStyle = "#1565c0";
-    ctx.lineWidth = 2;
+    ctx.setLineDash(
+      [5,5]
+    );
+
+    ctx.strokeStyle="#1565c0";
+    ctx.lineWidth=2;
+
 
     ctx.beginPath();
-    ctx.moveTo(mx,T+gh);
-    ctx.lineTo(mx,peakY);
+
+    ctx.moveTo(
+      mx,
+      T+gh
+    );
+
+    ctx.lineTo(
+      mx,
+      peak
+    );
+
     ctx.stroke();
 
     ctx.restore();
@@ -184,58 +935,138 @@ function draw(){
 
     /* μ LABEL */
 
-    ctx.fillStyle = "#1565c0";
-    ctx.font = "bold 15px Arial";
+    ctx.fillStyle="#1565c0";
+
+    ctx.font=
+      "bold 15px Arial";
 
     ctx.fillText(
       "μ",
       mx,
       T+gh+39
     );
+
   }
 
 
-  /*
-  μ − σ AND μ + σ
-  */
+  /* ========================================================
+     μ − σ AND μ + σ
+  ======================================================== */
 
-  ctx.strokeStyle = "#9c1458";
-  ctx.lineWidth = 2;
-
-  [mu-sigma,mu+sigma].forEach(x=>{
-
-    if(x >= xmin && x <= xmax){
-
-      const px = xp(x);
-
-      ctx.beginPath();
-      ctx.moveTo(px,T+gh-5);
-      ctx.lineTo(px,T+gh+5);
-      ctx.stroke();
-    }
-  });
+  ctx.strokeStyle="#9c1458";
+  ctx.lineWidth=2;
 
 
-  ctx.fillStyle = "#9c1458";
-  ctx.font = "bold 11px Arial";
+  const leftSigma =
+    mu-sigma;
+
+  const rightSigma =
+    mu+sigma;
 
 
-  if(mu-sigma >= xmin && mu-sigma <= xmax){
+  if(
+    leftSigma>=xmin &&
+    leftSigma<=xmax
+  ){
+
+    const px =
+      xp(leftSigma);
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      px,
+      T+gh-5
+    );
+
+    ctx.lineTo(
+      px,
+      T+gh+5
+    );
+
+    ctx.stroke();
+
+
+    ctx.fillStyle="#9c1458";
+    ctx.font="bold 11px Arial";
 
     ctx.fillText(
       "μ − σ",
-      xp(mu-sigma),
+      px,
       T+gh-11
     );
+
   }
 
 
-  if(mu+sigma >= xmin && mu+sigma <= xmax){
+  if(
+    rightSigma>=xmin &&
+    rightSigma<=xmax
+  ){
+
+    const px =
+      xp(rightSigma);
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      px,
+      T+gh-5
+    );
+
+    ctx.lineTo(
+      px,
+      T+gh+5
+    );
+
+    ctx.stroke();
+
+
+    ctx.fillStyle="#9c1458";
+    ctx.font="bold 11px Arial";
 
     ctx.fillText(
       "μ + σ",
-      xp(mu+sigma),
+      px,
       T+gh-11
     );
+
   }
+
 }
+
+
+/* ==========================================================
+   NUMBER FORMAT
+========================================================== */
+
+function formatNumber(x){
+
+  if(
+    Number.isInteger(x)
+  ){
+    return x.toString();
+  }
+
+  return Number(
+    x.toFixed(2)
+  ).toString();
+
+}
+
+
+/* ==========================================================
+   START
+========================================================== */
+
+window.addEventListener(
+  "resize",
+  resize
+);
+
+resize();
+
+</script>
+
+</body>
+</html>
